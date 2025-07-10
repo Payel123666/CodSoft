@@ -1,0 +1,144 @@
+import tkinter as tk
+from tkinter import messagebox, simpledialog
+import json
+import os
+
+# File to store contacts
+CONTACTS_FILE = "contacts.json"
+
+# Load contacts if the file exists
+if os.path.isfile(CONTACTS_FILE):
+    with open(CONTACTS_FILE, "r") as f:
+        contacts = json.load(f)
+else:
+    contacts = []
+
+# Function to save contacts to file
+def save_to_file():
+    with open(CONTACTS_FILE, "w") as f:
+        json.dump(contacts, f, indent=2)
+
+# Add contact to the list
+def add_new_contact():
+    name = name_input.get().strip()
+    phone = phone_input.get().strip()
+    email = email_input.get().strip()
+    address = address_input.get().strip()
+
+    if name and phone:
+        contacts.append({
+            "name": name,
+            "phone": phone,
+            "email": email,
+            "address": address
+        })
+        save_to_file()
+        messagebox.showinfo("Done", "Contact has been added.")
+        clear_all_fields()
+        load_contacts()
+    else:
+        messagebox.showwarning("Missing Info", "Name and phone are required!")
+
+# Show all contacts in list
+def load_contacts():
+    contact_box.delete(0, tk.END)
+    for c in contacts:
+        contact_box.insert(tk.END, f"{c['name']} - {c['phone']}")
+
+# Find a contact
+def search_contact():
+    search_term = search_input.get().strip().lower()
+    contact_box.delete(0, tk.END)
+    for c in contacts:
+        if search_term in c['name'].lower() or search_term in c['phone']:
+            contact_box.insert(tk.END, f"{c['name']} - {c['phone']}")
+
+# Delete selected contact
+def remove_contact():
+    selected = contact_box.curselection()
+    if selected:
+        idx = selected[0]
+        confirm = messagebox.askyesno("Delete?", "Do you really want to delete this contact?")
+        if confirm:
+            contacts.pop(idx)
+            save_to_file()
+            load_contacts()
+    else:
+        messagebox.showwarning("No Contact Selected", "Please select a contact to delete.")
+
+# Update contact info
+def edit_contact():
+    selected = contact_box.curselection()
+    if not selected:
+        messagebox.showwarning("No Contact Selected", "Select a contact to update.")
+        return
+
+    idx = selected[0]
+    existing = contacts[idx]
+
+    new_name = simpledialog.askstring("Name", "Update name:", initialvalue=existing['name'])
+    new_phone = simpledialog.askstring("Phone", "Update phone:", initialvalue=existing['phone'])
+    new_email = simpledialog.askstring("Email", "Update email:", initialvalue=existing['email'])
+    new_address = simpledialog.askstring("Address", "Update address:", initialvalue=existing['address'])
+
+    if new_name and new_phone:
+        contacts[idx] = {
+            "name": new_name,
+            "phone": new_phone,
+            "email": new_email,
+            "address": new_address
+        }
+        save_to_file()
+        load_contacts()
+    else:
+        messagebox.showwarning("Missing Info", "Name and phone are needed.")
+
+# Clear input fields
+def clear_all_fields():
+    name_input.delete(0, tk.END)
+    phone_input.delete(0, tk.END)
+    email_input.delete(0, tk.END)
+    address_input.delete(0, tk.END)
+
+# Setup GUI
+root = tk.Tk()
+root.title("Simple Contact Book")
+
+# Form labels and inputs
+tk.Label(root, text="Name:").grid(row=0, column=0, sticky="e")
+name_input = tk.Entry(root)
+name_input.grid(row=0, column=1)
+
+tk.Label(root, text="Phone:").grid(row=1, column=0, sticky="e")
+phone_input = tk.Entry(root)
+phone_input.grid(row=1, column=1)
+
+tk.Label(root, text="Email:").grid(row=2, column=0, sticky="e")
+email_input = tk.Entry(root)
+email_input.grid(row=2, column=1)
+
+tk.Label(root, text="Address:").grid(row=3, column=0, sticky="e")
+address_input = tk.Entry(root)
+address_input.grid(row=3, column=1)
+
+# Action buttons
+tk.Button(root, text="Add", command=add_new_contact).grid(row=4, column=0, pady=5)
+tk.Button(root, text="Update", command=edit_contact).grid(row=4, column=1, pady=5)
+tk.Button(root, text="Delete", command=remove_contact).grid(row=5, column=0)
+tk.Button(root, text="Clear", command=clear_all_fields).grid(row=5, column=1)
+
+# Search section
+tk.Label(root, text="Search:").grid(row=6, column=0, sticky="e")
+search_input = tk.Entry(root)
+search_input.grid(row=6, column=1)
+tk.Button(root, text="Go", command=search_contact).grid(row=6, column=2)
+
+# Listbox for displaying contacts
+contact_box = tk.Listbox(root, width=50)
+contact_box.grid(row=7, column=0, columnspan=3, pady=10)
+
+# Load existing contacts on start
+load_contacts()
+
+# Start the app
+root.mainloop()
